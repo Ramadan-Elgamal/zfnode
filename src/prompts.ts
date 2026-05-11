@@ -1,14 +1,23 @@
 import prompts from 'prompts';
 import pc from 'picocolors';
 
-// 1. UPDATED: Expanded configuration state interface
+// 1. FINALIZED: Complete configuration state interface
 export interface ScaffoldingConfig {
   projectName: string;
   port: number;
   language: 'typescript' | 'javascript';
   preset: 'minimal' | 'production' | 'enterprise';
   moduleResolution?: 'NodeNext' | 'CommonJS';
-  // Future properties will append here
+  database?: 'mongodb' | 'postgres' | 'mysql';
+  features?: {
+    redis: boolean;
+    bullmq: boolean;
+    ai: boolean;
+    sockets: boolean;
+    s3: boolean;
+    n8n: boolean;
+  };
+  packageManager: 'npm' | 'pnpm' | 'yarn' | 'bun';
 }
 
 const handleCancel = () => {
@@ -17,7 +26,7 @@ const handleCancel = () => {
   process.exit(0);
 };
 
-export const runPromptFunnel = async (): Promise<Partial<ScaffoldingConfig>> => {
+export const runPromptFunnel = async (): Promise<ScaffoldingConfig> => {
   console.log(pc.cyan('📋 Gathering project configuration...'));
   console.log('');
 
@@ -66,13 +75,8 @@ export const runPromptFunnel = async (): Promise<Partial<ScaffoldingConfig>> => 
         initial: 0,
       },
 
-      // ==========================================
-      // NEW CONDITIONAL PROMPTS ADDED BELOW
-      // ==========================================
-
-      // 4. GATEWAY PRESET (Only triggers if language === 'typescript')
+      // 4. GATEWAY PRESET
       {
-        // Dynamically evaluate if this prompt should render
         type: (prev, values) => (values.language === 'typescript' ? 'select' : null),
         name: 'preset',
         message: 'Select a Workspace Preset:',
@@ -93,16 +97,13 @@ export const runPromptFunnel = async (): Promise<Partial<ScaffoldingConfig>> => 
             value: 'enterprise' 
           },
         ],
-        initial: 1, // Defaults to Standard Production
+        initial: 1,
       },
 
-      // 5. MODULE RESOLUTION (Only triggers for TS + Production/Enterprise presets)
+      // 5. MODULE RESOLUTION
       {
         type: (prev, values) => {
-          // Skip if JS was chosen OR if they chose the minimal TS learner base
-          if (values.language !== 'typescript' || values.preset === 'minimal') {
-            return null;
-          }
+          if (values.language !== 'typescript' || values.preset === 'minimal') return null;
           return 'select';
         },
         name: 'moduleResolution',
@@ -113,16 +114,90 @@ export const runPromptFunnel = async (): Promise<Partial<ScaffoldingConfig>> => 
         ],
         initial: 0,
       },
+
+      // 6. DATABASE SELECTION
+      {
+        type: (prev, values) => (values.preset === 'enterprise' ? 'select' : null),
+        name: 'database',
+        message: 'Select your primary Database engine:',
+        choices: [
+          { title: 'MongoDB ' + pc.green('(Mongoose Adapter)'), value: 'mongodb' },
+          { title: 'PostgreSQL ' + pc.cyan('(Prisma Adapter)'), value: 'postgres' },
+          { title: 'MySQL ' + pc.blue('(Prisma Adapter)'), value: 'mysql' },
+        ],
+        initial: 0,
+      },
+
+      // 7. À LA CARTE ADVANCED MODULES
+      {
+        type: (prev, values) => (values.preset === 'enterprise' ? 'multiselect' : null),
+        name: 'rawFeatures',
+        message: 'Select optional enterprise modules to install:',
+        instructions: pc.gray(' (Press <space> to select, <a> to toggle all, <return> to submit)'),
+        choices: [
+          { title: '⚡ High-Performance Caching ' + pc.gray('(Redis)'), value: 'redis' },
+          { title: '📬 Asynchronous Background Jobs ' + pc.gray('(BullMQ)'), value: 'bullmq' },
+          { title: '🤖 Dynamic AI Gateway & Vectors ' + pc.gray('(OpenAI/Gemini/RAG)'), value: 'ai' },
+          { title: '🔄 Real-Time Communication ' + pc.gray('(Socket.io)'), value: 'sockets' },
+          { title: '☁️ Secure Cloud File Management ' + pc.gray('(Pre-signed S3 URLs)'), value: 's3' },
+          { title: '⚙️ Enterprise Workflow Automation ' + pc.gray('(n8n Webhook/Callbacks)'), value: 'n8n' },
+        ],
+      },
+
+      // ==========================================
+      // NEW PROMPT: PACKAGE MANAGER TARGET
+      // ==========================================
+      // 8. PACKAGE MANAGER SELECTION
+      {
+        type: 'select',
+        name: 'packageManager',
+        message: 'Which package manager do you use?',
+        choices: [
+          { title: pc.red('npm') + pc.gray(' (Standard node package manager)'), value: 'npm' },
+          { title: pc.yellow('pnpm') + pc.gray(' (Fast, disk-space efficient)'), value: 'pnpm' },
+          { title: pc.blue('yarn') + pc.gray(' (Classic deterministic client)'), value: 'yarn' },
+          { title: pc.cyan('bun') + pc.gray(' (Blazing fast all-in-one toolkit)'), value: 'bun' },
+        ],
+        initial: 0,
+      },
     ],
     {
       onCancel: handleCancel,
     }
   );
 
-  // Fallback cleanup: If JavaScript was chosen, hardcode the preset to minimal behind the scenes
+  // ==========================================
+  // SMART STATE ACCUMULATION & OVERRIDES
+  // ==========================================
+
   if (answers.language === 'javascript') {
     answers.preset = 'minimal';
   }
 
-  return answers as Partial<ScaffoldingConfig>;
+  if (answers.preset !== 'enterprise') {
+    answers.database = 'mongodb';
+  }
+
+  const selectedFeatures: string[] = answers.rawFeatures || [];
+  
+  const features = {
+    redis: selectedFeatures.includes('redis'),
+    bullmq: selectedFeatures.includes('bullmq'),
+    ai: selectedFeatures.includes('ai'),
+    sockets: selectedFeatures.includes('sockets'),
+    s3: selectedFeatures.includes('s3'),
+    n8n: selectedFeatures.includes('n8n'),
+  };
+
+  if (features.bullmq || features.sockets) {
+    features.redis = true;
+  }
+
+  delete answers.rawFeatures;
+  
+  // Return the strictly typed, complete configuration store
+  return {
+    ...answers,
+    features,
+  } as ScaffoldingConfig;
 };
