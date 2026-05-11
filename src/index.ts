@@ -2,8 +2,8 @@
 
 import { Command } from 'commander';
 import pc from 'picocolors';
+import { runPromptFunnel } from './prompts'; // <-- 1. Import the funnel
 
-// Initialize the primary CLI program
 const program = new Command();
 
 program
@@ -11,15 +11,18 @@ program
   .description('Interactive scaffolding CLI for enterprise Node.js & TypeScript architectures')
   .version('1.0.0')
   .action(async () => {
-    // Print a clean, colorized welcome banner
     console.log('');
     console.log(pc.bold(pc.cyan('🚀 Welcome to Create Node Blueprint')));
     console.log(pc.gray('==================================================='));
-    console.log(pc.green('Initializing interactive scaffolding pipeline...'));
     console.log('');
 
-    // TODO: Phase 2 prompts integration will mount here
+    // <-- 2. Execute the interactive funnel
+    const config = await runPromptFunnel();
+
+    // Temporary debug print to verify state accumulation
+    console.log('');
+    console.log(pc.green('✔ Initial configuration captured successfully:'));
+    console.log(config);
   });
 
-// FIXED: Execute the parser against the incoming terminal arguments
 program.parse(process.argv);
