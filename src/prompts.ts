@@ -77,7 +77,8 @@ export const runPromptFunnel = async (): Promise<ScaffoldingConfig> => {
 
       // 4. GATEWAY PRESET
       {
-        type: (prev, values) => (values.language === 'typescript' ? 'select' : null),
+        // Change prev to _prev
+type: (_prev, values) => (values.language === 'typescript' ? 'select' : null),
         name: 'preset',
         message: 'Select a Workspace Preset:',
         choices: [
@@ -102,10 +103,11 @@ export const runPromptFunnel = async (): Promise<ScaffoldingConfig> => {
 
       // 5. MODULE RESOLUTION
       {
-        type: (prev, values) => {
-          if (values.language !== 'typescript' || values.preset === 'minimal') return null;
-          return 'select';
-        },
+        // Change prev to _prev
+type: (_prev, values) => {
+  if (values.language !== 'typescript' || values.preset === 'minimal') return null;
+  return 'select';
+},
         name: 'moduleResolution',
         message: 'Choose your Module Resolution standard:',
         choices: [
@@ -117,7 +119,8 @@ export const runPromptFunnel = async (): Promise<ScaffoldingConfig> => {
 
       // 6. DATABASE SELECTION
       {
-        type: (prev, values) => (values.preset === 'enterprise' ? 'select' : null),
+        // Change prev to _prev
+        type: (_prev, values) => (values.preset === 'enterprise' ? 'select' : null),
         name: 'database',
         message: 'Select your primary Database engine:',
         choices: [
@@ -130,7 +133,7 @@ export const runPromptFunnel = async (): Promise<ScaffoldingConfig> => {
 
       // 7. À LA CARTE ADVANCED MODULES
       {
-        type: (prev, values) => (values.preset === 'enterprise' ? 'multiselect' : null),
+        type: (_prev, values) => (values.preset === 'enterprise' ? 'multiselect' : null),
         name: 'rawFeatures',
         message: 'Select optional enterprise modules to install:',
         instructions: pc.gray(' (Press <space> to select, <a> to toggle all, <return> to submit)'),

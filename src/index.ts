@@ -2,7 +2,8 @@
 
 import { Command } from 'commander';
 import pc from 'picocolors';
-import { runPromptFunnel } from './prompts'; // <-- 1. Import the funnel
+import { runPromptFunnel } from './prompts.js';
+import { executeScaffoldingPipeline } from './generator.js'; // <-- 1. Import Generator Engine
 
 const program = new Command();
 
@@ -16,13 +17,11 @@ program
     console.log(pc.gray('==================================================='));
     console.log('');
 
-    // <-- 2. Execute the interactive funnel
+    // Capture validated parameters
     const config = await runPromptFunnel();
 
-    // Temporary debug print to verify state accumulation
-    console.log('');
-    console.log(pc.green('✔ Initial configuration captured successfully:'));
-    console.log(config);
+    // Trigger physical file generation lifecycle
+    await executeScaffoldingPipeline(config);
   });
 
 program.parse(process.argv);
