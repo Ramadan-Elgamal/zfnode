@@ -12,7 +12,8 @@
     "templates"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "dev": "tsx src/index.ts"
   },
   "keywords": [
     "cli",
@@ -24,5 +25,18 @@
     "npx"
   ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^25.6.2",
+    "@types/prompts": "^2.4.9",
+    "install": "^0.13.0",
+    "npm": "^11.14.1",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "commander": "^14.0.3",
+    "picocolors": "^1.1.1",
+    "prompts": "^2.4.2"
+  }
 }
