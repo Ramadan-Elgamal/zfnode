@@ -1,0 +1,9 @@
+# Exclude raw CLI development files
+src/
+tsconfig.json
+
+# Exclude local test artifacts and logs
+staging-tests/
+node_modules/
+*.log
+.DS_Store

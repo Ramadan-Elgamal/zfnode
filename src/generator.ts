@@ -3,6 +3,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import pc from 'picocolors';
 import { ScaffoldingConfig } from './prompts.js';
+import { installDependencies } from './installer.js';
+import { ui } from './ui.js';
 
 // Resolve directory paths cleanly within an ES Module environment
 const __filename = fileURLToPath(import.meta.url);
@@ -67,7 +69,7 @@ export const executeScaffoldingPipeline = async (config: ScaffoldingConfig): Pro
   const targetWorkspace = path.resolve(process.cwd(), config.projectName);
 
   console.log('');
-  console.log(pc.cyan(`🚀 Scaffolding workspace inside: ${pc.bold(targetWorkspace)}`));
+  ui.startSpinner(`Establishing directory skeleton for ${config.projectName}...`);
 
   try {
     await fs.mkdir(targetWorkspace, { recursive: true });
@@ -79,6 +81,7 @@ export const executeScaffoldingPipeline = async (config: ScaffoldingConfig): Pro
       
     const presetSrc = path.join(TEMPLATES_DIR, presetFolder);
     await copyTemplateDir(presetSrc, targetWorkspace, config);
+    ui.updateSpinner('Generating highly tailored package.json manifest...');
 
     // 2. Compose Dynamic Dependency Tree
     await composePackageManifest(targetWorkspace, config);
@@ -88,6 +91,7 @@ export const executeScaffoldingPipeline = async (config: ScaffoldingConfig): Pro
 
     // 4. Stitch Modular Database Connectors
     if (config.language === 'typescript' && config.preset !== 'minimal') {
+      ui.updateSpinner('Stitching modular persistence layers and database profiles...');
       const pluginsDir = path.join(TEMPLATES_DIR, 'plugins');
       const targetConfigDir = path.join(targetWorkspace, 'src/config');
       await fs.mkdir(targetConfigDir, { recursive: true });
@@ -97,7 +101,6 @@ export const executeScaffoldingPipeline = async (config: ScaffoldingConfig): Pro
         dbStubSrc = path.join(pluginsDir, 'db-mongo/db.ts');
       } else if (config.database === 'postgres' || config.database === 'mysql') {
         dbStubSrc = path.join(pluginsDir, 'db-prisma/db.ts');
-        // Drop Prisma schema definitions directly into project root directory
         const schemaSrc = path.join(pluginsDir, `db-prisma/schema.${config.database}.prisma`);
         const schemaDest = path.join(targetWorkspace, 'prisma/schema.prisma');
         await fs.mkdir(path.dirname(schemaDest), { recursive: true });
@@ -109,9 +112,23 @@ export const executeScaffoldingPipeline = async (config: ScaffoldingConfig): Pro
       }
     }
 
-    console.log(pc.green('✔ Base architecture and database layers successfully bound.'));
+    // 5. Selectively Inject Advanced Features
+    ui.updateSpinner('Injecting isolated enterprise modules and routing stubs...');
+    await injectAdvancedFeatures(targetWorkspace, config);
+
+    // 6. Generate Contextual Environment Files
+    await composeEnvironmentVariables(targetWorkspace, config);
+
+    ui.succeedSpinner('Workspace blueprint compiled cleanly.');
+
+    // 7. Execute Background Dependency Installation
+    // The installer spawns its own logs, so we let it render natively
+    await installDependencies(targetWorkspace, config.packageManager);
+
+    // Print final polished summary block
+    ui.printSummary(config);
   } catch (error) {
-    console.error(pc.red('❌ Scaffolding engine failed to execute pipeline updates.'));
+    ui.failSpinner('Critical failure encountered during workspace generation.');
     throw error;
   }
 };
@@ -203,4 +220,105 @@ export const injectArchitecturalAdapters = async (targetWorkspace: string, confi
   } catch {
     // Graceful fallback if static plugin folders haven't been physically populated yet
   }
+};
+
+/**
+ * Selectively injects advanced enterprise features and appends their dependencies
+ * dynamically to the target workspace package.json manifest.
+ */
+export const injectAdvancedFeatures = async (targetWorkspace: string, config: ScaffoldingConfig): Promise<void> => {
+  if (config.language === 'javascript' || config.preset !== 'enterprise' || !config.features) return;
+
+  const pluginsDir = path.join(TEMPLATES_DIR, 'plugins');
+  const targetConfig = path.join(targetWorkspace, 'src/config');
+  const targetServices = path.join(targetWorkspace, 'src/services');
+
+  await fs.mkdir(targetConfig, { recursive: true });
+  await fs.mkdir(targetServices, { recursive: true });
+
+  // Read existing package.json to append feature dependencies dynamically
+  const manifestPath = path.join(targetWorkspace, 'package.json');
+  const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf-8'));
+
+  // 1. REDIS CACHING
+  if (config.features.redis) {
+    const src = path.join(pluginsDir, 'feature-redis/redis.ts');
+    await fs.copyFile(src, path.join(targetConfig, 'redis.ts')).catch(() => {});
+    manifest.dependencies.ioredis = '^5.4.1';
+  }
+
+  // 2. BULLMQ QUEUES
+  if (config.features.bullmq) {
+    const src = path.join(pluginsDir, 'feature-bullmq/queue.ts');
+    await fs.copyFile(src, path.join(targetConfig, 'queue.ts')).catch(() => {});
+    manifest.dependencies.bullmq = '^5.13.0';
+  }
+
+  // 3. AI GATEWAY
+  if (config.features.ai) {
+    const src = path.join(pluginsDir, 'feature-ai/ai.service.ts');
+    await fs.copyFile(src, path.join(targetServices, 'ai.service.ts')).catch(() => {});
+    manifest.dependencies['@google/genai'] = '^0.1.1';
+  }
+
+  // 4. WEBSOCKETS
+  if (config.features.sockets) {
+    manifest.dependencies['socket.io'] = '^4.8.0';
+  }
+
+  // 5. SECURE CLOUD STORAGE (S3)
+  if (config.features.s3) {
+    manifest.dependencies['@aws-sdk/client-s3'] = '^3.654.0';
+    manifest.dependencies['@aws-sdk/s3-request-presigner'] = '^3.654.0';
+  }
+
+  // Save compiled dependencies back to disk
+  await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
+};
+
+/**
+ * Compiles a perfectly tailored environment file containing strictly the keys
+ * mandated by the active database and enterprise module choices.
+ */
+export const composeEnvironmentVariables = async (targetWorkspace: string, config: ScaffoldingConfig): Promise<void> => {
+  let envStream = `# Generated by Master Playbook Blueprint\n`;
+  envStream += `NODE_ENV=development\n`;
+  envStream += `PORT=${config.port}\n\n`;
+
+  // Database Connection Strings
+  envStream += `# Database Persistence Layer\n`;
+  if (config.database === 'mongodb') {
+    envStream += `DATABASE_URL=mongodb://localhost:27017/${config.projectName}\n`;
+  } else if (config.database === 'postgres') {
+    envStream += `DATABASE_URL="postgresql://postgres:password@localhost:5432/${config.projectName}?schema=public"\n`;
+  } else if (config.database === 'mysql') {
+    envStream += `DATABASE_URL="mysql://root:password@localhost:3306/${config.projectName}"\n`;
+  }
+  envStream += '\n';
+
+  // Advanced Enterprise Modules
+  if (config.preset === 'enterprise' && config.features) {
+    envStream += `# Enterprise Infrastructure Keys\n`;
+    
+    if (config.features.redis) {
+      envStream += `REDIS_URL=redis://localhost:6379\n`;
+    }
+    if (config.features.ai) {
+      envStream += `GEMINI_API_KEY=your_gemini_api_key_here\n`;
+    }
+    if (config.features.s3) {
+      envStream += `STORAGE_REGION=us-east-1\n`;
+      envStream += `STORAGE_BUCKET_NAME=my-production-bucket\n`;
+      envStream += `STORAGE_ACCESS_KEY=your_access_key_id\n`;
+      envStream += `STORAGE_SECRET_KEY=your_secret_access_key\n`;
+    }
+    if (config.features.n8n) {
+      envStream += `N8N_WEBHOOK_BASE_URL=http://localhost:5678\n`;
+      envStream += `N8N_SHARED_SECRET=super_secure_orchestration_secret\n`;
+    }
+  }
+
+  // Safely output both environment definitions directly into project root
+  await fs.writeFile(path.join(targetWorkspace, '.env'), envStream.trim() + '\n', 'utf-8');
+  await fs.writeFile(path.join(targetWorkspace, '.env.example'), envStream.trim() + '\n', 'utf-8');
 };
