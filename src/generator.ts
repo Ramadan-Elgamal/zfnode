@@ -119,6 +119,10 @@ export const executeScaffoldingPipeline = async (config: ScaffoldingConfig): Pro
     // 6. Generate Contextual Environment Files
     await composeEnvironmentVariables(targetWorkspace, config);
 
+    // NEW STEP: Drop instructional onboarding documentation guide into project root
+    ui.updateSpinner('Compiling customized instructional project documentation guide...');
+    await composeInstructionalReadme(targetWorkspace, config);
+
     ui.succeedSpinner('Workspace blueprint compiled cleanly.');
 
     // 7. Execute Background Dependency Installation
@@ -148,8 +152,8 @@ export const composePackageManifest = async (targetWorkspace: string, config: Sc
     // Inject native module resolution properties conditionally
     ...(isESM && { type: 'module' }),
     scripts: {
-      start: isTS ? 'node dist/server.js' : 'node server.js',
-      dev: isTS ? 'tsx watch src/server.ts' : 'node --watch server.js',
+      start: isTS ? 'node dist/server.js' : 'node src/server.js',
+      dev: isTS ? 'tsx watch src/server.ts' : 'node --watch src/server.js',
     },
     dependencies: {
       express: '^4.21.0',
@@ -222,9 +226,20 @@ export const injectArchitecturalAdapters = async (targetWorkspace: string, confi
   }
 };
 
+const safeCopyPlugin = async (srcPath: string, destPath: string, featureName: string): Promise<void> => {
+  try {
+    // Check if the source file physically exists
+    await fs.access(srcPath);
+    await fs.copyFile(srcPath, destPath);
+  } catch (error) {
+    // If it fails, throw a loud, descriptive error instead of failing silently
+    throw new Error(`Missing template asset for [${featureName}]: Expected file at ${srcPath}`);
+  }
+};
+
 /**
- * Selectively injects advanced enterprise features and appends their dependencies
- * dynamically to the target workspace package.json manifest.
+ * Selectively injects advanced enterprise features, wires routing mounts into app.ts,
+ * and appends runtime dependencies dynamically to package.json.
  */
 export const injectAdvancedFeatures = async (targetWorkspace: string, config: ScaffoldingConfig): Promise<void> => {
   if (config.language === 'javascript' || config.preset !== 'enterprise' || !config.features) return;
@@ -232,50 +247,101 @@ export const injectAdvancedFeatures = async (targetWorkspace: string, config: Sc
   const pluginsDir = path.join(TEMPLATES_DIR, 'plugins');
   const targetConfig = path.join(targetWorkspace, 'src/config');
   const targetServices = path.join(targetWorkspace, 'src/services');
+  const targetRoutes = path.join(targetWorkspace, 'src/routes');
 
   await fs.mkdir(targetConfig, { recursive: true });
   await fs.mkdir(targetServices, { recursive: true });
+  await fs.mkdir(targetRoutes, { recursive: true });
 
-  // Read existing package.json to append feature dependencies dynamically
   const manifestPath = path.join(targetWorkspace, 'package.json');
   const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf-8'));
 
+  let appImports = '';
+  let appMounts = '';
+
   // 1. REDIS CACHING
   if (config.features.redis) {
-    const src = path.join(pluginsDir, 'feature-redis/redis.ts');
-    await fs.copyFile(src, path.join(targetConfig, 'redis.ts')).catch(() => {});
+    await safeCopyPlugin(
+      path.join(pluginsDir, 'feature-redis/redis.ts'),
+      path.join(targetConfig, 'redis.ts'),
+      'Redis Caching'
+    );
     manifest.dependencies.ioredis = '^5.4.1';
   }
 
   // 2. BULLMQ QUEUES
   if (config.features.bullmq) {
-    const src = path.join(pluginsDir, 'feature-bullmq/queue.ts');
-    await fs.copyFile(src, path.join(targetConfig, 'queue.ts')).catch(() => {});
+    await safeCopyPlugin(
+      path.join(pluginsDir, 'feature-bullmq/queue.ts'),
+      path.join(targetConfig, 'queue.ts'),
+      'BullMQ Queues'
+    );
     manifest.dependencies.bullmq = '^5.13.0';
   }
 
   // 3. AI GATEWAY
   if (config.features.ai) {
-    const src = path.join(pluginsDir, 'feature-ai/ai.service.ts');
-    await fs.copyFile(src, path.join(targetServices, 'ai.service.ts')).catch(() => {});
-    manifest.dependencies['@google/genai'] = '^0.1.1';
+    await safeCopyPlugin(
+      path.join(pluginsDir, 'feature-ai/ai.service.ts'),
+      path.join(targetServices, 'ai.service.ts'),
+      'AI Gateway Service'
+    );
+    await safeCopyPlugin(
+      path.join(pluginsDir, 'feature-ai/ai.routes.ts'),
+      path.join(targetRoutes, 'ai.routes.ts'),
+      'AI Gateway Routes'
+    );
+    
+    manifest.dependencies['@google/genai'] = '^2.1.0';
+    appImports += `import aiRoutes from './routes/ai.routes.js';\n`;
+    appMounts += `app.use('/api/v1/ai', aiRoutes);\n`;
   }
 
   // 4. WEBSOCKETS
   if (config.features.sockets) {
+    await safeCopyPlugin(
+      path.join(pluginsDir, 'feature-sockets/socket.ts'),
+      path.join(targetConfig, 'socket.ts'),
+      'WebSockets IO'
+    );
     manifest.dependencies['socket.io'] = '^4.8.0';
   }
 
   // 5. SECURE CLOUD STORAGE (S3)
   if (config.features.s3) {
+    await safeCopyPlugin(
+      path.join(pluginsDir, 'feature-s3/storage.service.ts'),
+      path.join(targetServices, 'storage.service.ts'),
+      'S3 Secure Storage'
+    );
     manifest.dependencies['@aws-sdk/client-s3'] = '^3.654.0';
     manifest.dependencies['@aws-sdk/s3-request-presigner'] = '^3.654.0';
   }
 
-  // Save compiled dependencies back to disk
+  // 6. n8n AUTOMATION CONNECTOR
+  if (config.features.n8n) {
+    await safeCopyPlugin(
+      path.join(pluginsDir, 'feature-n8n/automation.service.ts'),
+      path.join(targetServices, 'automation.service.ts'),
+      'n8n Automation Engine'
+    );
+  }
+
+  // Inject accumulated framework references straight into central Express core
+  if (appImports || appMounts) {
+    const appPath = path.join(targetWorkspace, 'src/app.ts');
+    try {
+      let appContent = await fs.readFile(appPath, 'utf-8');
+      appContent = appContent.replace(/(import.*AppError.*;)/, `$1\n${appImports.trim()}`);
+      appContent = appContent.replace(/(\/\/ DYNAMIC MODULE ROUTE MOUNTS INJECTED HERE)/, `$1\n${appMounts.trim()}`);
+      await fs.writeFile(appPath, appContent, 'utf-8');
+    } catch {
+      // Graceful fallback if base files are unreadable during sticher run
+    }
+  }
+
   await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
 };
-
 /**
  * Compiles a perfectly tailored environment file containing strictly the keys
  * mandated by the active database and enterprise module choices.
@@ -321,4 +387,44 @@ export const composeEnvironmentVariables = async (targetWorkspace: string, confi
   // Safely output both environment definitions directly into project root
   await fs.writeFile(path.join(targetWorkspace, '.env'), envStream.trim() + '\n', 'utf-8');
   await fs.writeFile(path.join(targetWorkspace, '.env.example'), envStream.trim() + '\n', 'utf-8');
+};
+
+/**
+ * Generates an onboarding guide dynamically tailored to the user's selected framework parameters.
+ */
+export const composeInstructionalReadme = async (targetWorkspace: string, config: ScaffoldingConfig): Promise<void> => {
+  const isTS = config.language === 'typescript';
+  const ext = isTS ? 'ts' : 'js';
+
+  let readme = `# 🚀 ${config.projectName}\n\n`;
+  readme += `Welcome to your highly scalable, enterprise-grade backend infrastructure. This application has been explicitly tailored to your framework requirements using the **Master Playbook Blueprint architecture**.\n\n`;
+
+  readme += `## 📁 Layered Anatomy Tutorial\n\n`;
+  readme += `To ensure clean separation of concerns and maximum maintainability, this project enforces strict directory boundaries. Navigate your newly scaffolded layers as follows:\n\n`;
+
+  readme += `* **\`src/config/\`**: Houses external resource configurations, database drivers, and global environment state variables.\n`;
+  readme += `* **\`src/controllers/\`**: Acts as your networking gateways. Controllers parse incoming HTTP requests, delegate validation, and pass parameters directly down to internal core services.\n`;
+  readme += `* **\`src/middlewares/\`**: Contains centralized request interceptors, schema validation blocks, and secure operational authorization gates.\n`;
+  readme += `* **\`src/routes/\`**: Maps clear network access routes directly to individual controller logic targets.\n`;
+  readme += `* **\`src/services/\`**: Contains pure business logic execution engines and third-party orchestration commands. Keep framework network parameters entirely decoupled from this level.\n\n`;
+
+  readme += `## ⚡ Quickstart Execution\n\n`;
+  readme += `1. Duplicate the environment template and verify connection keys:\n`;
+  readme += `   \`\`\`bash\n   cp .env.example .env\n   \`\`\`\n`;
+  readme += `2. Boot the live-reloading development server:\n`;
+  readme += `   \`\`\`bash\n   ${config.packageManager === 'npm' ? 'npm run dev' : `${config.packageManager} dev`}\n   \`\`\`\n`;
+  readme += `3. Verify framework operation by querying the root verification loop:\n`;
+  readme += `   \`\`\`bash\n   curl http://localhost:${config.port}/health\n   \`\`\`\n\n`;
+
+  if (config.preset === 'enterprise' && config.features) {
+    readme += `## ⚙️ Injected Enterprise Modules\n\n`;
+    readme += `Your workspace has been successfully pre-configured with the following active architectural integrations:\n\n`;
+    if (config.features.redis) readme += `* **High-Performance Caching**: Fully configured \`ioredis\` connection mapped natively inside \`src/config/redis.${ext}\`.\n`;
+    if (config.features.bullmq) readme += `* **Asynchronous Jobs**: Background queue structures and worker templates initialized natively inside \`src/config/queue.${ext}\`.\n`;
+    if (config.features.ai) readme += `* **Dynamic AI Gateway**: Dedicated operational generation services injected straight into \`src/services/ai.service.${ext}\` with route hooks mounted natively to \`/api/v1/ai\`.\n`;
+  }
+
+  readme += `\n---\n*Engineered for velocity, stability, and unyielding scale.*`;
+
+  await fs.writeFile(path.join(targetWorkspace, 'README.md'), readme, 'utf-8');
 };
