@@ -150,6 +150,11 @@ export const composePackageManifest = async (targetWorkspace: string, config: Sc
     scripts: {
       start: isTS ? 'node dist/server.js' : 'node src/server.js',
       dev: isTS ? 'tsx watch src/server.ts' : 'node --watch src/server.js',
+      ...(isTS && config.preset !== 'minimal' && {
+        build: 'tsc',
+        test: 'jest',
+        'test:coverage': 'jest --coverage',
+      }),
     },
     dependencies: {
       express: '^4.21.0',
@@ -170,6 +175,13 @@ export const composePackageManifest = async (targetWorkspace: string, config: Sc
       '@types/node': '^22.5.5',
       '@types/express': '^4.17.21',
       '@types/cors': '^2.8.17',
+      ...(config.preset !== 'minimal' && {
+        jest: '^29.7.0',
+        'ts-jest': '^29.2.5',
+        supertest: '^7.0.0',
+        '@types/jest': '^29.5.13',
+        '@types/supertest': '^6.0.2',
+      }),
     };
 
     // Advanced Production/Enterprise Presets require heavy utility suites
@@ -437,6 +449,38 @@ export const injectAdvancedFeatures = async (targetWorkspace: string, config: Sc
       await fs.writeFile(appPath, appContent, 'utf-8');
     } catch {
       // Graceful fallback if base files are unreadable during sticher run
+    }
+  }
+
+  // ==========================================
+  // INJECT INTEGRATED TESTING FRAMEWORKS
+  // ==========================================
+  // Guarantee verification suites are attached natively for Production and Enterprise tiers
+  if (config.preset === 'enterprise' || config.preset === 'production') {
+    const targetTestsDir = path.join(targetWorkspace, 'tests');
+    await fs.mkdir(targetTestsDir, { recursive: true });
+
+    // Seed root compiler mapping settings
+    await safeCopyPlugin(
+      path.join(pluginsDir, 'feature-tests/jest.config.ts'),
+      path.join(targetWorkspace, 'jest.config.ts'),
+      'Jest Base Configuration'
+    );
+
+    // Seed native routing integrations verification block
+    await safeCopyPlugin(
+      path.join(pluginsDir, 'feature-tests/health.test.ts'),
+      path.join(targetTestsDir, 'health.test.ts'),
+      'API Integration Verification Suite'
+    );
+
+    // Conditionally attach unit suite if Identity and Access Control modules are checked
+    if (config.features?.auth) {
+      await safeCopyPlugin(
+        path.join(pluginsDir, 'feature-tests/auth.service.test.ts'),
+        path.join(targetTestsDir, 'auth.service.test.ts'),
+        'Auth Cryptographic Unit Suite'
+      );
     }
   }
 
