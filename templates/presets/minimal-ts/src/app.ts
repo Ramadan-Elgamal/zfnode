@@ -1,7 +1,11 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
 
 const app: Express = express();
 
+app.use(helmet());
+app.use(cors());
 app.use(express.json());
 
 // Baseline verification endpoint

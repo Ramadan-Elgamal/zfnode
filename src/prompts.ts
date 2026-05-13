@@ -10,6 +10,7 @@ export interface ScaffoldingConfig {
   moduleResolution?: 'NodeNext' | 'CommonJS';
   database?: 'mongodb' | 'postgres' | 'mysql';
   features?: {
+    auth: boolean;
     redis: boolean;
     bullmq: boolean;
     ai: boolean;
@@ -138,6 +139,7 @@ type: (_prev, values) => {
         message: 'Select optional enterprise modules to install:',
         instructions: pc.gray(' (Press <space> to select, <a> to toggle all, <return> to submit)'),
         choices: [
+          { title: '🔐 JWT Authentication & Access Control ' + pc.gray('(Bcrypt/Tokens)'), value: 'auth' },
           { title: '⚡ High-Performance Caching ' + pc.gray('(Redis)'), value: 'redis' },
           { title: '📬 Asynchronous Background Jobs ' + pc.gray('(BullMQ)'), value: 'bullmq' },
           { title: '🤖 Dynamic AI Gateway & Vectors ' + pc.gray('(OpenAI/Gemini/RAG)'), value: 'ai' },
@@ -185,6 +187,7 @@ type: (_prev, values) => {
   const selectedFeatures: string[] = answers.rawFeatures || [];
   
   const features = {
+    auth: answers.preset === 'production' || selectedFeatures.includes('auth'),
     redis: selectedFeatures.includes('redis'),
     bullmq: selectedFeatures.includes('bullmq'),
     ai: selectedFeatures.includes('ai'),

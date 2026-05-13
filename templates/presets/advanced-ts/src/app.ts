@@ -1,9 +1,14 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 import { logger } from './config/logger.js';
 import { AppError } from './utils/AppError.js';
 
 const app: Express = express();
+
+app.use(helmet());
+app.use(cors());
 
 // Enable structured, high-performance JSON request logging
 app.use(pinoHttp({ logger }));

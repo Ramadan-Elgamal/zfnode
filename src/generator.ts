@@ -3,7 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import pc from 'picocolors';
 import { ScaffoldingConfig } from './prompts.js';
-import { installDependencies } from './installer.js';
+import { installDependencies, verifyPackageManager } from './installer.js';
 import { ui } from './ui.js';
 
 // Resolve directory paths cleanly within an ES Module environment
@@ -104,14 +104,29 @@ export const executeScaffoldingPipeline = async (config: ScaffoldingConfig): Pro
     ui.updateSpinner('Compiling customized instructional project documentation guide...');
     await composeInstructionalReadme(targetWorkspace, config);
 
-    ui.succeedSpinner('Workspace blueprint compiled cleanly.');
+    // ==========================================
+    // PREVENTATIVE VERIFICATION & INSTALLATION
+    // ==========================================
+    ui.updateSpinner(`Verifying if host system possesses global binary for [${config.packageManager}]...`);
+    const isInstalled = await verifyPackageManager(config.packageManager);
 
-    // 7. Execute Background Dependency Installation
-    // The installer spawns its own logs, so we let it render natively
-    await installDependencies(targetWorkspace, config.packageManager);
+    if (!isInstalled) {
+      ui.failSpinner(`Global executable for ${pc.bold(pc.yellow(config.packageManager))} not detected in OS environment.`);
+      console.log(pc.yellow(`⚠️ Skipping automated installation lifecycle. Workspace structure generated securely.`));
 
-    // Print final polished summary block
-    ui.printSummary(config);
+      // Resolve accurate manual command target dynamically based on chosen tool
+      const fallbackCmd = config.packageManager === 'yarn' ? 'yarn' : `${config.packageManager} install`;
+      console.log(pc.gray(`👉 ${config.packageManager} was not available globally. Run '${fallbackCmd}' inside the folder later if you want to install dependencies locally.\n`));
+
+      // Render summary notifying user that dependencies must be resolved manually
+      ui.printSummary(config, false);
+    } else {
+      ui.succeedSpinner('Workspace blueprint compiled cleanly.');
+      await installDependencies(targetWorkspace, config.packageManager);
+
+      // Render pristine summary assuming automated zero-config dependency mapping
+      ui.printSummary(config, true);
+    }
   } catch (error) {
     ui.failSpinner('Critical failure encountered during workspace generation.');
     throw error;
@@ -138,6 +153,8 @@ export const composePackageManifest = async (targetWorkspace: string, config: Sc
     },
     dependencies: {
       express: '^4.21.0',
+      cors: '^2.8.5',
+      helmet: '^8.0.0',
     } as Record<string, string>,
     devDependencies: {} as Record<string, string>,
   };
@@ -152,6 +169,7 @@ export const composePackageManifest = async (targetWorkspace: string, config: Sc
       tsx: '^4.19.1',
       '@types/node': '^22.5.5',
       '@types/express': '^4.17.21',
+      '@types/cors': '^2.8.17',
     };
 
     // Advanced Production/Enterprise Presets require heavy utility suites
@@ -294,7 +312,7 @@ export const stitchDatabaseAdapter = async (targetWorkspace: string, config: Sca
  * and appends runtime dependencies dynamically to package.json.
  */
 export const injectAdvancedFeatures = async (targetWorkspace: string, config: ScaffoldingConfig): Promise<void> => {
-  if (config.language === 'javascript' || config.preset !== 'enterprise' || !config.features) return;
+  if (config.language === 'javascript' || !config.features) return;
 
   const pluginsDir = path.join(TEMPLATES_DIR, 'plugins');
   const targetConfig = path.join(targetWorkspace, 'src/config');
@@ -310,6 +328,36 @@ export const injectAdvancedFeatures = async (targetWorkspace: string, config: Sc
 
   let appImports = '';
   let appMounts = '';
+
+  // 0. JWT AUTHENTICATION SUITE
+  if (config.features.auth) {
+    const targetMiddlewares = path.join(targetWorkspace, 'src/middlewares');
+    await fs.mkdir(targetMiddlewares, { recursive: true });
+
+    await safeCopyPlugin(
+      path.join(pluginsDir, 'feature-auth/requireAuth.ts'),
+      path.join(targetMiddlewares, 'requireAuth.ts'),
+      'JWT Interceptor Guard'
+    );
+    await safeCopyPlugin(
+      path.join(pluginsDir, 'feature-auth/auth.service.ts'),
+      path.join(targetServices, 'auth.service.ts'),
+      'Auth Cryptographic Engine'
+    );
+    await safeCopyPlugin(
+      path.join(pluginsDir, 'feature-auth/auth.routes.ts'),
+      path.join(targetRoutes, 'auth.routes.ts'),
+      'Identity Routes'
+    );
+
+    manifest.dependencies.bcrypt = '^5.1.1';
+    manifest.dependencies.jsonwebtoken = '^9.0.2';
+    manifest.devDependencies['@types/bcrypt'] = '^5.0.2';
+    manifest.devDependencies['@types/jsonwebtoken'] = '^9.0.7';
+
+    appImports += `import authRoutes from './routes/auth.routes.js';\n`;
+    appMounts += `app.use('/api/v1/auth', authRoutes);\n`;
+  }
 
   // 1. REDIS CACHING
   if (config.features.redis) {
@@ -415,9 +463,12 @@ export const composeEnvironmentVariables = async (targetWorkspace: string, confi
   envStream += '\n';
 
   // Advanced Enterprise Modules
-  if (config.preset === 'enterprise' && config.features) {
+  if ((config.preset === 'enterprise' || config.preset === 'production') && config.features) {
     envStream += `# Enterprise Infrastructure Keys\n`;
     
+    if (config.features.auth) {
+      envStream += `JWT_SECRET=super_secure_production_jwt_signing_key_here\n`;
+    }
     if (config.features.redis) {
       envStream += `REDIS_URL=redis://localhost:6379\n`;
     }

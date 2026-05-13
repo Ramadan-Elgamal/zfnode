@@ -1,5 +1,22 @@
-import { spawn } from 'child_process';
+import { exec, spawn } from 'child_process';
+import util from 'util';
 import pc from 'picocolors';
+
+// Promisify native child_process execution for clean async/await flows
+const execAsync = util.promisify(exec);
+
+/**
+ * Silently queries the host operating system's PATH to verify if the chosen
+ * package manager executable is physically installed and responding.
+ */
+export const verifyPackageManager = async (packageManager: 'npm' | 'pnpm' | 'yarn' | 'bun'): Promise<boolean> => {
+  try {
+    await execAsync(`${packageManager} --version`);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 /**
  * Spawns an asynchronous package manager installation process inside the
