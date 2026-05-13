@@ -90,27 +90,8 @@ export const executeScaffoldingPipeline = async (config: ScaffoldingConfig): Pro
     await injectArchitecturalAdapters(targetWorkspace, config);
 
     // 4. Stitch Modular Database Connectors
-    if (config.language === 'typescript' && config.preset !== 'minimal') {
-      ui.updateSpinner('Stitching modular persistence layers and database profiles...');
-      const pluginsDir = path.join(TEMPLATES_DIR, 'plugins');
-      const targetConfigDir = path.join(targetWorkspace, 'src/config');
-      await fs.mkdir(targetConfigDir, { recursive: true });
-
-      let dbStubSrc = '';
-      if (config.database === 'mongodb') {
-        dbStubSrc = path.join(pluginsDir, 'db-mongo/db.ts');
-      } else if (config.database === 'postgres' || config.database === 'mysql') {
-        dbStubSrc = path.join(pluginsDir, 'db-prisma/db.ts');
-        const schemaSrc = path.join(pluginsDir, `db-prisma/schema.${config.database}.prisma`);
-        const schemaDest = path.join(targetWorkspace, 'prisma/schema.prisma');
-        await fs.mkdir(path.dirname(schemaDest), { recursive: true });
-        await fs.copyFile(schemaSrc, schemaDest).catch(() => {});
-      }
-
-      if (dbStubSrc) {
-        await fs.copyFile(dbStubSrc, path.join(targetConfigDir, 'db.ts')).catch(() => {});
-      }
-    }
+    ui.updateSpinner('Stitching modular persistence layers and database profiles...');
+    await stitchDatabaseAdapter(targetWorkspace, config);
 
     // 5. Selectively Inject Advanced Features
     ui.updateSpinner('Injecting isolated enterprise modules and routing stubs...');
@@ -186,16 +167,6 @@ export const composePackageManifest = async (targetWorkspace: string, config: Sc
     }
   }
 
-  // ==========================================
-  // RESOLVE MODULAR DATABASE DRIVERS
-  // ==========================================
-  if (config.database === 'mongodb') {
-    manifest.dependencies.mongoose = '^8.6.3';
-  } else if (config.database === 'postgres' || config.database === 'mysql') {
-    manifest.dependencies['@prisma/client'] = '^5.19.1';
-    manifest.devDependencies.prisma = '^5.19.1';
-  }
-
   // Write compiled JSON stream cleanly to disk
   const manifestPath = path.join(targetWorkspace, 'package.json');
   await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
@@ -234,6 +205,87 @@ const safeCopyPlugin = async (srcPath: string, destPath: string, featureName: st
   } catch (error) {
     // If it fails, throw a loud, descriptive error instead of failing silently
     throw new Error(`Missing template asset for [${featureName}]: Expected file at ${srcPath}`);
+  }
+};
+
+/**
+ * Resolves modular database infrastructure universally across all presets,
+ * injecting connection profiles and runtime execution hooks natively.
+ */
+export const stitchDatabaseAdapter = async (targetWorkspace: string, config: ScaffoldingConfig): Promise<void> => {
+  // Determine framework target context
+  const isJS = config.language === 'javascript';
+  const ext = isJS ? 'js' : 'ts';
+
+  // Ensure we have a valid database target assigned
+  const dbTarget = config.database || 'mongodb';
+
+  const pluginsDir = path.join(TEMPLATES_DIR, 'plugins');
+  const targetConfigDir = path.join(targetWorkspace, 'src/config');
+  await fs.mkdir(targetConfigDir, { recursive: true });
+
+  const manifestPath = path.join(targetWorkspace, 'package.json');
+  const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf-8'));
+
+  // ==========================================
+  // 1. ASSET TRANSFER & DEPENDENCIES
+  // ==========================================
+  if (dbTarget === 'mongodb') {
+    await safeCopyPlugin(
+      path.join(pluginsDir, `db-mongo/db.${ext}`),
+      path.join(targetConfigDir, `db.${ext}`),
+      `MongoDB Persistence Adapter (${ext.toUpperCase()})`
+    );
+    manifest.dependencies.mongoose = '^8.10.0';
+  } else if (dbTarget === 'postgres' || dbTarget === 'mysql') {
+    await safeCopyPlugin(
+      path.join(pluginsDir, 'db-prisma/db.ts'),
+      path.join(targetConfigDir, 'db.ts'),
+      'Prisma SQL Client Adapter'
+    );
+
+    const targetPrismaDir = path.join(targetWorkspace, 'prisma');
+    await fs.mkdir(targetPrismaDir, { recursive: true });
+
+    await safeCopyPlugin(
+      path.join(pluginsDir, `db-prisma/schema.${dbTarget}.prisma`),
+      path.join(targetPrismaDir, 'schema.prisma'),
+      `Prisma Schema (${dbTarget})`
+    );
+
+    manifest.dependencies['@prisma/client'] = '^6.0.0';
+    manifest.devDependencies.prisma = '^6.0.0';
+    manifest.scripts.postinstall = 'prisma generate';
+  }
+
+  await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
+
+  // ==========================================
+  // 2. RUNTIME SERVER INJECTION HOOKS
+  // ==========================================
+  // Target the specific server entry file based on language choice
+  const serverPath = path.join(targetWorkspace, `src/server.${ext}`);
+  try {
+    let serverContent = await fs.readFile(serverPath, 'utf-8');
+
+    // Inject standard ES Module import mapping
+    const importHook = `import { connectDB } from './config/db.js';\n`;
+    serverContent = serverContent.replace(/(import app from '\.\/app\.js';)/, `$1\n${importHook.trim()}`);
+
+    // Mount asynchronous execution sequence prior to port binding
+    const bootHook = `await connectDB();\n`;
+
+    if (isJS || config.preset === 'minimal') {
+      // Minimal bases use direct app.listen blocks
+      serverContent = serverContent.replace(/(app\.listen)/, `${bootHook}\n$1`);
+    } else {
+      // Advanced bases bind cleanly to const server assignments
+      serverContent = serverContent.replace(/(const server = app\.listen)/, `${bootHook}\n$1`);
+    }
+
+    await fs.writeFile(serverPath, serverContent, 'utf-8');
+  } catch {
+    // Fallback safety catch if entry files fail string matching
   }
 };
 

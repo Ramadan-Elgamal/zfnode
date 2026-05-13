@@ -177,7 +177,8 @@ type: (_prev, values) => {
     answers.preset = 'minimal';
   }
 
-  if (answers.preset !== 'enterprise') {
+  // Fallback cleanup for non-enterprise paths
+  if (answers.preset !== 'enterprise' || !answers.database) {
     answers.database = 'mongodb';
   }
 
