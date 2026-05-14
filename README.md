@@ -1,7 +1,7 @@
-# ZFNODE
+# ZFNODEJS
 
 <p align="center">
-  <img src="assets/logo-svg.svg" alt="zfnode logo" width="220" />
+  <img src="assets/logo-svg.svg" alt="zfnodejs logo" width="220" />
 </p>
 
 **Enterprise-grade scaffold generator for Node.js and TypeScript projects with layered architecture, zero-config database wiring, and production-ready CI/CD pipelines.**
@@ -13,26 +13,26 @@
 ### Global Install (Recommended)
 
 ```bash
-npm install -g zfnode
+npm install -g zfnodejs
 ```
 
 Then generate a new project anywhere:
 
 ```bash
-zfnode
+zfnodejs
 ```
 
 ### Run Without Installation (npx)
 
 ```bash
-npx zfnode
+npx zfnodejs
 ```
 
 ### From Source
 
 ```bash
 git clone <repository-url>
-cd zfnode
+cd zfnodejs
 npm install
 npm run build
 npm run dev
@@ -45,7 +45,7 @@ npm run dev
 Run the interactive scaffolding funnel:
 
 ```bash
-zfnode
+zfnodejs
 ```
 
 You'll be prompted to:
@@ -101,7 +101,7 @@ Here's what happens next:
 ### Primary Scaffolding (Interactive)
 
 ```bash
-zfnode
+zfnodejs
 ```
 
 Launches the guided prompt funnel. Perfect for new projects.
@@ -113,13 +113,13 @@ After your project is created, use these commands inside the project directory t
 #### Generate a Standalone Controller
 
 ```bash
-zfnode bot:controller [name]
+zfnodejs bot:controller [name]
 ```
 
 Creates a self-contained controller with no service dependencies:
 
 ```bash
-zfnode bot:controller UserProfile
+zfnodejs bot:controller UserProfile
 ```
 
 Output: `src/controllers/user-profile.controller.ts` — a fully working, immediately runnable Express handler.
@@ -127,13 +127,13 @@ Output: `src/controllers/user-profile.controller.ts` — a fully working, immedi
 #### Generate a Standalone Service
 
 ```bash
-zfnode bot:service [name]
+zfnodejs bot:service [name]
 ```
 
 Creates a decoupled business logic engine:
 
 ```bash
-zfnode bot:service PaymentProcessor
+zfnodejs bot:service PaymentProcessor
 ```
 
 Output: `src/services/payment-processor.service.ts` — ready for integration anywhere.
@@ -141,13 +141,13 @@ Output: `src/services/payment-processor.service.ts` — ready for integration an
 #### Generate a Standalone Route
 
 ```bash
-zfnode bot:route [name]
+zfnodejs bot:route [name]
 ```
 
 Creates an independent route with built-in inline handlers:
 
 ```bash
-zfnode bot:route Reports
+zfnodejs bot:route Reports
 ```
 
 Output: `src/routes/reports.routes.ts` — fully functional, requires no additional wiring.
@@ -155,13 +155,13 @@ Output: `src/routes/reports.routes.ts` — fully functional, requires no additio
 #### Generate a Complete Vertical Slice (Resource)
 
 ```bash
-zfnode bot:resource [name]
+zfnodejs bot:resource [name]
 ```
 
 Generates three interconnected files at once and **automatically mounts the route** into `src/app.ts`:
 
 ```bash
-zfnode bot:resource Order
+zfnodejs bot:resource Order
 ```
 
 Output:
@@ -184,7 +184,7 @@ The controller imports and uses the service. The route imports and mounts the co
 ### Example 1: Quick Blog API
 
 ```bash
-zfnode
+zfnodejs
 
 ? Project name: blog-api
 ? Language: TypeScript
@@ -199,7 +199,7 @@ Result: A lean, production-ready Express server with routes, services, and contr
 ### Example 2: SaaS Backend with Full Stack
 
 ```bash
-zfnode
+zfnodejs
 
 ? Project name: saas-platform
 ? Language: TypeScript
@@ -217,7 +217,7 @@ You're already in `my-api/`. Add a new domain slice instantly:
 
 ```bash
 cd my-api
-zfnode bot:resource Invoice
+zfnodejs bot:resource Invoice
 ```
 
 Result:
@@ -232,7 +232,7 @@ You need a quick one-off controller that doesn't need a service:
 
 ```bash
 cd my-api
-zfnode bot:controller WebhookReceiver
+zfnodejs bot:controller WebhookReceiver
 ```
 
 Result: `src/controllers/webhook-receiver.controller.ts` — a standalone, immediately-runnable controller with no missing imports or broken dependencies. Drop it into a route and go.
@@ -241,7 +241,7 @@ Result: `src/controllers/webhook-receiver.controller.ts` — a standalone, immed
 
 ```bash
 cd my-api
-zfnode bot:service EmailNotifier
+zfnodejs bot:service EmailNotifier
 ```
 
 Result: `src/services/email-notifier.service.ts` — independent, ready to be imported by multiple controllers or queue handlers.
@@ -296,7 +296,7 @@ AWS_REGION=us-east-1
 Blueprint works with **npm**, **yarn**, **pnpm**, and **bun**. Auto-detection happens during setup:
 
 ```bash
-zfnode
+zfnodejs
 ? Package manager: yarn
 ```
 
@@ -358,7 +358,7 @@ app.use('/api/v1/invoices', invoiceRoutes);
 You tried to generate a resource that already exists:
 
 ```bash
-zfnode bot:service User
+zfnodejs bot:service User
 # ❌ src/services/user.service.ts already exists
 ```
 
@@ -382,7 +382,7 @@ The scaffold will still work—Git initialization is optional.
 You generated a standalone controller/route/service but can't import it in your app:
 
 ```bash
-zfnode bot:controller Auth
+zfnodejs bot:controller Auth
 # src/controllers/auth.controller.ts is generated
 ```
 
@@ -431,7 +431,7 @@ MIT License. See [LICENSE](./LICENSE) file for details.
 
 ## Next Steps
 
-- **Start a project:** `zfnode`
+- **Start a project:** `zfnodejs`
 - **Read generated README:** Inside your new project, check `README_GENERATED.md` for setup details
 - **Run the dev server:** `npm run dev` (default port 3000)
 - **Run tests:** `npm run test` (if enterprise/production preset)
