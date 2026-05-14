@@ -49,3 +49,30 @@ export const installDependencies = (targetWorkspace: string, packageManager: 'np
     });
   });
 };
+
+/**
+ * Silently initializes a local Git repository, stages all generated skeleton files,
+ * and attempts to lock down a pristine initial baseline commit.
+ */
+export const initGitRepository = async (targetWorkspace: string): Promise<boolean> => {
+  try {
+    // Ensure the host platform natively possesses an operational Git execution path
+    await execAsync('git --version');
+
+    // Initialize local source tracking context
+    await execAsync('git init', { cwd: targetWorkspace });
+
+    // Stage all scaffolded infrastructure files cleanly
+    await execAsync('git add .', { cwd: targetWorkspace });
+
+    // Commit baseline state securely
+    await execAsync('git commit -m "chore: initial full-stack scaffold via create-node-blueprint"', { 
+      cwd: targetWorkspace 
+    });
+
+    return true;
+  } catch {
+    // Fails smoothly if global git config identities are absent on the host OS
+    return false;
+  }
+};

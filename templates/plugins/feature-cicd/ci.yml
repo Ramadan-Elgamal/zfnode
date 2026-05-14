@@ -1,0 +1,28 @@
+name: Continuous Integration Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  verification:
+    name: Build & Execute Verification Suites
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: '{{cacheTarget}}'
+
+      - name: Resolve Application Dependencies
+        run: {{installCmd}}
+
+      - name: Execute Integrated Testing Suites
+        run: {{testCmd}}

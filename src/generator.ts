@@ -3,7 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import pc from 'picocolors';
 import { ScaffoldingConfig } from './prompts.js';
-import { installDependencies, verifyPackageManager } from './installer.js';
+import { installDependencies, verifyPackageManager, initGitRepository } from './installer.js';
 import { ui } from './ui.js';
 
 // Resolve directory paths cleanly within an ES Module environment
@@ -113,18 +113,30 @@ export const executeScaffoldingPipeline = async (config: ScaffoldingConfig): Pro
     if (!isInstalled) {
       ui.failSpinner(`Global executable for ${pc.bold(pc.yellow(config.packageManager))} not detected in OS environment.`);
       console.log(pc.yellow(`⚠️ Skipping automated installation lifecycle. Workspace structure generated securely.`));
-
-      // Resolve accurate manual command target dynamically based on chosen tool
+      
       const fallbackCmd = config.packageManager === 'yarn' ? 'yarn' : `${config.packageManager} install`;
-      console.log(pc.gray(`👉 ${config.packageManager} was not available globally. Run '${fallbackCmd}' inside the folder later if you want to install dependencies locally.\n`));
-
-      // Render summary notifying user that dependencies must be resolved manually
+      console.log(pc.gray(`👉 Simply install [${config.packageManager}] globally, or run '${fallbackCmd}' inside the folder later.\n`));
+      
       ui.printSummary(config, false);
     } else {
       ui.succeedSpinner('Workspace blueprint compiled cleanly.');
+      
+      // Trigger native console streams displaying dependency resolution progress
       await installDependencies(targetWorkspace, config.packageManager);
+      
+      // ==========================================
+      // NEW SOURCE CONTROL INITIALIZATION HOOK
+      // ==========================================
+      console.log(pc.cyan('🔄 Initializing Git repository and securing baseline state...'));
+      const gitSuccess = await initGitRepository(targetWorkspace);
+      
+      if (gitSuccess) {
+        console.log(pc.green('✔ Source control tracking initialized cleanly with initial commit.'));
+      } else {
+        console.log(pc.gray('○ Source control setup bypassed (Git binary absent or unconfigured locally).'));
+      }
 
-      // Render pristine summary assuming automated zero-config dependency mapping
+      // Display polished onboarding summaries
       ui.printSummary(config, true);
     }
   } catch (error) {
@@ -481,6 +493,35 @@ export const injectAdvancedFeatures = async (targetWorkspace: string, config: Sc
         path.join(targetTestsDir, 'auth.service.test.ts'),
         'Auth Cryptographic Unit Suite'
       );
+    }
+  }
+
+  // ==========================================
+  // INJECT CI/CD GITHUB ACTIONS PIPELINE
+  // ==========================================
+  // Strictly enforce CI/CD pipeline structures on Production and Enterprise architectures
+  if (config.preset === 'enterprise' || config.preset === 'production') {
+    const workflowsDir = path.join(targetWorkspace, '.github/workflows');
+    await fs.mkdir(workflowsDir, { recursive: true });
+
+    const ciTemplatePath = path.join(TEMPLATES_DIR, 'plugins/feature-cicd/ci.yml');
+    try {
+      let ciContent = await fs.readFile(ciTemplatePath, 'utf-8');
+
+      // Resolve package manager targets to match dynamic execution pipelines
+      const installCmd = config.packageManager === 'yarn' ? 'yarn' : `${config.packageManager} install`;
+      const testCmd = config.packageManager === 'npm' ? 'npm run test' : `${config.packageManager} test`;
+      
+      // Native actions/setup-node configuration expects npm, pnpm, or yarn strings strictly
+      const cacheTarget = config.packageManager === 'bun' ? 'npm' : config.packageManager;
+
+      ciContent = ciContent.replace(/\{\{cacheTarget\}\}/g, cacheTarget);
+      ciContent = ciContent.replace(/\{\{installCmd\}\}/g, installCmd);
+      ciContent = ciContent.replace(/\{\{testCmd\}\}/g, testCmd);
+
+      await fs.writeFile(path.join(workflowsDir, 'ci.yml'), ciContent, 'utf-8');
+    } catch {
+      // Catch safety fallbacks cleanly if staging templates are structurally unlinked
     }
   }
 
