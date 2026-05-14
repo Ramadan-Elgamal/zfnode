@@ -1,7 +1,7 @@
 # ZFNODEJS
 
 <p align="center">
-  <img src="assets/logo-svg.svg" alt="zfnodejs logo" width="220" />
+  <img src="https://raw.githubusercontent.com/Ramadan-Elgamal/zfnodejs/refs/heads/main/assets/logo-svg.svg" alt="zfnodejs logo" width="220" />
 </p>
 
 **Enterprise-grade scaffold generator for Node.js and TypeScript projects with layered architecture, zero-config database wiring, and production-ready CI/CD pipelines.**
