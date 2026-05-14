@@ -1,0 +1,67 @@
+import { Request, Response, NextFunction } from 'express';
+import { {{camelName}}Service } from '../services/{{kebabName}}.service.js';
+
+export const {{camelName}}Controller = {
+  /**
+   * Retrieve all relevant records for the domain entity.
+   */
+  async getAll(req: Request, res: Response, next: NextFunction) {
+    try {
+      const records = await {{camelName}}Service.findAll();
+      res.status(200).json({ status: 'success', data: records });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Retrieve a specific domain entity record by its unique identifier.
+   */
+  async getById(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const record = await {{camelName}}Service.findById(id);
+      res.status(200).json({ status: 'success', data: record });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Persist a new domain entity record securely.
+   */
+  async create(req: Request, res: Response, next: NextFunction) {
+    try {
+      const newRecord = await {{camelName}}Service.create(req.body);
+      res.status(201).json({ status: 'success', data: newRecord });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Update an existing domain entity record.
+   */
+  async update(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const updatedRecord = await {{camelName}}Service.update(id, req.body);
+      res.status(200).json({ status: 'success', data: updatedRecord });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Remove a domain entity record permanently from the persistence layer.
+   */
+  async delete(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      await {{camelName}}Service.delete(id);
+      res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  },
+};

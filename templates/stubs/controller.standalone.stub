@@ -1,0 +1,68 @@
+import { Request, Response, NextFunction } from 'express';
+
+export const {{camelName}}Controller = {
+  /**
+   * Standalone retrieval endpoint.
+   */
+  async getAll(req: Request, res: Response, next: NextFunction) {
+    try {
+      // TODO: Implement independent query resolution logic
+      res.status(200).json({ status: 'success', data: [] });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Standalone target retrieval endpoint.
+   */
+  async getById(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      res.status(200).json({ 
+        status: 'success', 
+        data: { id, message: 'Independent controller target resolved.' } 
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Standalone creation endpoint.
+   */
+  async create(req: Request, res: Response, next: NextFunction) {
+    try {
+      res.status(201).json({ 
+        status: 'success', 
+        data: { id: 'standalone_uuid_123', ...req.body } 
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Standalone update endpoint.
+   */
+  async update(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      res.status(200).json({ status: 'success', data: { id, ...req.body } });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Standalone deletion endpoint.
+   */
+  async delete(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  },
+};

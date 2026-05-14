@@ -1,0 +1,33 @@
+import { AppError } from '../utils/AppError.js';
+
+export const {{camelName}}Service = {
+  async findAll() {
+    // TODO: Implement database query resolution here
+    return [];
+  },
+
+  async findById(id: string) {
+    // Demonstration safety block
+    if (!id) throw new AppError('Unique entity identifier is required', 400);
+    
+    // TODO: Fetch single record from DB
+    return { id, name: 'Sample {{PascalName}} Entity' };
+  },
+
+  async create(payload: Record<string, any>) {
+    // TODO: Validate payload schema and persist to storage layer
+    return { id: 'new_uuid_123', ...payload, createdAt: new Date() };
+  },
+
+  async update(id: string, payload: Record<string, any>) {
+    if (!id) throw new AppError('Target record identifier missing', 400);
+    // TODO: Apply updates to specific persistence entity
+    return { id, ...payload, updatedAt: new Date() };
+  },
+
+  async delete(id: string) {
+    if (!id) throw new AppError('Target record identifier missing', 400);
+    // TODO: Execute permanent deletion logic
+    return true;
+  },
+};

@@ -1,9 +1,9 @@
 # Exclude ONLY the root CLI development source folder
 /src/
+/staging-tests/
 tsconfig.json
 
 # Exclude local test artifacts and logs
-/staging-tests/
 node_modules/
 *.log
 .DS_Store

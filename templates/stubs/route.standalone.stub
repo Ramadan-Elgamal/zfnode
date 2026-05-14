@@ -1,0 +1,21 @@
+import { Router, Request, Response, NextFunction } from 'express';
+
+const router = Router();
+
+/**
+ * Independent routing profile for {{pascalName}}
+ */
+router.route('/')
+  .get((req: Request, res: Response, next: NextFunction) => {
+    res.status(200).json({ status: 'success', message: 'GET {{pascalName}} route operational.' });
+  })
+  .post((req: Request, res: Response, next: NextFunction) => {
+    res.status(201).json({ status: 'success', data: req.body });
+  });
+
+router.route('/:id')
+  .get((req: Request, res: Response, next: NextFunction) => {
+    res.status(200).json({ status: 'success', message: `Target {{pascalName}} resolved for ID: ${req.params.id}` });
+  });
+
+export default router;

@@ -1,0 +1,16 @@
+import { Router } from 'express';
+import { {{camelName}}Controller } from '../controllers/{{kebabName}}.controller.js';
+
+const router = Router();
+
+// Standard RESTful access pathways mapped explicitly to controller actions
+router.route('/')
+  .get({{camelName}}Controller.getAll)
+  .post({{camelName}}Controller.create);
+
+router.route('/:id')
+  .get({{camelName}}Controller.getById)
+  .patch({{camelName}}Controller.update)
+  .delete({{camelName}}Controller.delete);
+
+export default router;
