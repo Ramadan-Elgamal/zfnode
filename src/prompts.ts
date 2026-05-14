@@ -38,7 +38,7 @@ export const runPromptFunnel = async (): Promise<ScaffoldingConfig> => {
         type: 'text',
         name: 'projectName',
         message: 'What is your project named?',
-        initial: 'my-node-blueprint',
+        initial: 'zfnode-app',
         validate: (value: string) => {
           if (!value.trim()) return 'Project name cannot be empty.';
           if (/[^a-zA-Z0-9-_]/.test(value)) {

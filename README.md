@@ -1,4 +1,8 @@
-# create-node-blueprint
+# ZFNODE
+
+<p align="center">
+  <img src="assets/logo-svg.svg" alt="zfnode logo" width="220" />
+</p>
 
 **Enterprise-grade scaffold generator for Node.js and TypeScript projects with layered architecture, zero-config database wiring, and production-ready CI/CD pipelines.**
 
@@ -9,26 +13,26 @@
 ### Global Install (Recommended)
 
 ```bash
-npm install -g create-node-blueprint
+npm install -g zfnode
 ```
 
 Then generate a new project anywhere:
 
 ```bash
-create-node-blueprint
+zfnode
 ```
 
 ### Run Without Installation (npx)
 
 ```bash
-npx create-node-blueprint
+npx zfnode
 ```
 
 ### From Source
 
 ```bash
 git clone <repository-url>
-cd create-node-blueprint
+cd zfnode
 npm install
 npm run build
 npm run dev
@@ -41,7 +45,7 @@ npm run dev
 Run the interactive scaffolding funnel:
 
 ```bash
-create-node-blueprint
+zfnode
 ```
 
 You'll be prompted to:
@@ -97,7 +101,7 @@ Here's what happens next:
 ### Primary Scaffolding (Interactive)
 
 ```bash
-create-node-blueprint
+zfnode
 ```
 
 Launches the guided prompt funnel. Perfect for new projects.
@@ -109,13 +113,13 @@ After your project is created, use these commands inside the project directory t
 #### Generate a Standalone Controller
 
 ```bash
-create-node-blueprint make:controller [name]
+zfnode bot:controller [name]
 ```
 
 Creates a self-contained controller with no service dependencies:
 
 ```bash
-create-node-blueprint make:controller UserProfile
+zfnode bot:controller UserProfile
 ```
 
 Output: `src/controllers/user-profile.controller.ts` — a fully working, immediately runnable Express handler.
@@ -123,13 +127,13 @@ Output: `src/controllers/user-profile.controller.ts` — a fully working, immedi
 #### Generate a Standalone Service
 
 ```bash
-create-node-blueprint make:service [name]
+zfnode bot:service [name]
 ```
 
 Creates a decoupled business logic engine:
 
 ```bash
-create-node-blueprint make:service PaymentProcessor
+zfnode bot:service PaymentProcessor
 ```
 
 Output: `src/services/payment-processor.service.ts` — ready for integration anywhere.
@@ -137,13 +141,13 @@ Output: `src/services/payment-processor.service.ts` — ready for integration an
 #### Generate a Standalone Route
 
 ```bash
-create-node-blueprint make:route [name]
+zfnode bot:route [name]
 ```
 
 Creates an independent route with built-in inline handlers:
 
 ```bash
-create-node-blueprint make:route Reports
+zfnode bot:route Reports
 ```
 
 Output: `src/routes/reports.routes.ts` — fully functional, requires no additional wiring.
@@ -151,13 +155,13 @@ Output: `src/routes/reports.routes.ts` — fully functional, requires no additio
 #### Generate a Complete Vertical Slice (Resource)
 
 ```bash
-create-node-blueprint make:resource [name]
+zfnode bot:resource [name]
 ```
 
 Generates three interconnected files at once and **automatically mounts the route** into `src/app.ts`:
 
 ```bash
-create-node-blueprint make:resource Order
+zfnode bot:resource Order
 ```
 
 Output:
@@ -180,7 +184,7 @@ The controller imports and uses the service. The route imports and mounts the co
 ### Example 1: Quick Blog API
 
 ```bash
-create-node-blueprint
+zfnode
 
 ? Project name: blog-api
 ? Language: TypeScript
@@ -195,7 +199,7 @@ Result: A lean, production-ready Express server with routes, services, and contr
 ### Example 2: SaaS Backend with Full Stack
 
 ```bash
-create-node-blueprint
+zfnode
 
 ? Project name: saas-platform
 ? Language: TypeScript
@@ -213,7 +217,7 @@ You're already in `my-api/`. Add a new domain slice instantly:
 
 ```bash
 cd my-api
-create-node-blueprint make:resource Invoice
+zfnode bot:resource Invoice
 ```
 
 Result:
@@ -228,7 +232,7 @@ You need a quick one-off controller that doesn't need a service:
 
 ```bash
 cd my-api
-create-node-blueprint make:controller WebhookReceiver
+zfnode bot:controller WebhookReceiver
 ```
 
 Result: `src/controllers/webhook-receiver.controller.ts` — a standalone, immediately-runnable controller with no missing imports or broken dependencies. Drop it into a route and go.
@@ -237,7 +241,7 @@ Result: `src/controllers/webhook-receiver.controller.ts` — a standalone, immed
 
 ```bash
 cd my-api
-create-node-blueprint make:service EmailNotifier
+zfnode bot:service EmailNotifier
 ```
 
 Result: `src/services/email-notifier.service.ts` — independent, ready to be imported by multiple controllers or queue handlers.
@@ -292,7 +296,7 @@ AWS_REGION=us-east-1
 Blueprint works with **npm**, **yarn**, **pnpm**, and **bun**. Auto-detection happens during setup:
 
 ```bash
-create-node-blueprint
+zfnode
 ? Package manager: yarn
 ```
 
@@ -338,7 +342,7 @@ Then run `create-node-blueprint` again inside your project directory.
 
 ### Route Didn't Auto-Mount
 
-The `make:resource` command attempts to find your `src/app.ts` and inject the import + mount. If your app file has a custom layout, auto-injection is skipped.
+The `bot:resource` command attempts to find your `src/app.ts` and inject the import + mount. If your app file has a custom layout, auto-injection is skipped.
 
 **Fix:** Manually add the import and mount to `src/app.ts`:
 
@@ -354,7 +358,7 @@ app.use('/api/v1/invoices', invoiceRoutes);
 You tried to generate a resource that already exists:
 
 ```bash
-create-node-blueprint make:service User
+zfnode bot:service User
 # ❌ src/services/user.service.ts already exists
 ```
 
@@ -378,7 +382,7 @@ The scaffold will still work—Git initialization is optional.
 You generated a standalone controller/route/service but can't import it in your app:
 
 ```bash
-create-node-blueprint make:controller Auth
+zfnode bot:controller Auth
 # src/controllers/auth.controller.ts is generated
 ```
 
@@ -427,7 +431,7 @@ MIT License. See [LICENSE](./LICENSE) file for details.
 
 ## Next Steps
 
-- **Start a project:** `create-node-blueprint`
+- **Start a project:** `zfnode`
 - **Read generated README:** Inside your new project, check `README_GENERATED.md` for setup details
 - **Run the dev server:** `npm run dev` (default port 3000)
 - **Run tests:** `npm run test` (if enterprise/production preset)

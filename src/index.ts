@@ -13,8 +13,8 @@ import { injectRouteIntoApp } from './utils/injector.js';
 const program = new Command();
 
 program
-  .name('create-node-blueprint')
-  .description('Enterprise Node.js & TypeScript API scaffolding and daily code generation engine')
+  .name('zfnode')
+  .description('Zero Friction Node.js API scaffolding and automated daily code generation bot')
   .version('1.1.0');
 
 // Helper to interactively resolve entity names if the user drops command arguments
@@ -44,7 +44,7 @@ program
   .action(async () => {
     if (program.args.length > 0) {
       console.error(pc.red(`❌ Unknown command: ${program.args.join(' ')}`));
-      console.log(`👉 Run ${pc.cyan('create-node-blueprint --help')} to view available operations.`);
+      console.log(`👉 Run ${pc.cyan('zfnode --help')} to view available operations.`);
       process.exit(1);
     }
 
@@ -62,8 +62,8 @@ program
 // ==========================================
 
 program
-  .command('make:controller [name]')
-  .description('Scaffold a new domain controller pre-wired with standard HTTP transport logic')
+  .command('bot:controller [name]')
+  .description('Instruct the bot to scaffold an independent HTTP domain controller')
   .action(async (name?: string) => {
     const resolvedName = await resolveEntityName(name, 'Controller');
     const context = await scanWorkspace();
@@ -72,7 +72,7 @@ program
     const targetDir = path.join(context.srcDir, 'controllers');
     const destPath = path.join(targetDir, `${names.kebabName}.controller.${context.ext}`);
 
-    console.log(pc.cyan(`⚡ Scaffolding Controller [${pc.bold(names.pascalName)}] targeting ${context.ext.toUpperCase()} output...`));
+    console.log(pc.cyan(`🤖 Bot crafting Controller [${pc.bold(names.pascalName)}]...`));
 
     if (await fileExists(destPath)) {
       console.error(pc.red(`❌ Aborted: Target controller asset already exists at [${destPath}]`));
@@ -92,8 +92,8 @@ program
   });
 
 program
-  .command('make:service [name]')
-  .description('Scaffold a decoupled business logic execution engine')
+  .command('bot:service [name]')
+  .description('Instruct the bot to scaffold a decoupled business logic service')
   .action(async (name?: string) => {
     const resolvedName = await resolveEntityName(name, 'Service');
     const context = await scanWorkspace();
@@ -102,7 +102,7 @@ program
     const targetDir = path.join(context.srcDir, 'services');
     const destPath = path.join(targetDir, `${names.kebabName}.service.${context.ext}`);
 
-    console.log(pc.cyan(`⚡ Scaffolding Service [${pc.bold(names.pascalName)}] targeting ${context.ext.toUpperCase()} output...`));
+    console.log(pc.cyan(`🤖 Bot crafting Service [${pc.bold(names.pascalName)}]...`));
 
     if (await fileExists(destPath)) {
       console.error(pc.red(`❌ Aborted: Target service asset already exists at [${destPath}]`));
@@ -122,8 +122,8 @@ program
   });
 
 program
-  .command('make:route [name]')
-  .description('Scaffold an API routing profile mapped cleanly to domain targets')
+  .command('bot:route [name]')
+  .description('Instruct the bot to scaffold an independent API routing profile')
   .action(async (name?: string) => {
     const resolvedName = await resolveEntityName(name, 'Route');
     const context = await scanWorkspace();
@@ -132,7 +132,7 @@ program
     const targetDir = path.join(context.srcDir, 'routes');
     const destPath = path.join(targetDir, `${names.kebabName}.routes.${context.ext}`);
 
-    console.log(pc.cyan(`⚡ Scaffolding Route [${pc.bold(names.pascalName)}] targeting ${context.ext.toUpperCase()} output...`));
+    console.log(pc.cyan(`🤖 Bot crafting Route [${pc.bold(names.pascalName)}]...`));
 
     if (await fileExists(destPath)) {
       console.error(pc.red(`❌ Aborted: Target routing asset already exists at [${destPath}]`));
@@ -152,14 +152,14 @@ program
   });
 
 program
-  .command('make:resource [name]')
-  .description('Generate a complete vertical domain slice (Controller, Service, Route concurrently)')
+  .command('bot:resource [name]')
+  .description('Instruct the bot to generate and mount a complete vertical domain slice')
   .action(async (name?: string) => {
     const resolvedName = await resolveEntityName(name, 'Resource Slice');
     const context = await scanWorkspace();
     const names = parseEntityName(resolvedName);
 
-    console.log(pc.cyan(`🚀 Scaffolding Full Resource Slice for [${pc.bold(names.pascalName)}] targeting ${context.ext.toUpperCase()} output...`));
+    console.log(pc.cyan(`🚀 Bot deploying Full Resource Slice for [${pc.bold(names.pascalName)}]...`));
 
     const controllerDir = path.join(context.srcDir, 'controllers');
     const serviceDir = path.join(context.srcDir, 'services');
@@ -223,7 +223,7 @@ program
         console.log(pc.gray(`  Mounted: app.use('/api/v1/${names.kebabName}s', ${names.camelName}Routes);`));
         console.log('');
       } else {
-        console.log(pc.yellow(`○ Auto-mount bypassed (Custom app.ts layout or route already mapped).`));
+        console.log(pc.yellow(`○ Auto-mount bypassed. Please mount manually in src/app.${context.ext}`));
         console.log(pc.bold('👉 Next Step (Mount manually):'));
         console.log(`   Open ${pc.cyan(`src/app.${context.ext}`)} and mount your new domain profile:`);
         console.log('');

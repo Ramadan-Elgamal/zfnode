@@ -1,11 +1,11 @@
 {
-  "name": "create-node-blueprint",
-  "version": "1.0.0",
-  "description": "Interactive scaffolding CLI for enterprise Node.js and TypeScript architectures",
+  "name": "zfnode",
+  "version": "1.1.0",
+  "description": "Zero Friction Node.js API scaffolding and automated code generation bot",
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
-    "create-node-blueprint": "./dist/index.js"
+    "zfnode": "./dist/index.js"
   },
   "files": [
     "dist",
@@ -13,7 +13,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "dev": "tsx src/index.ts",
+    "dev": "node ./dist/index.js",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
