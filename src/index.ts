@@ -3,9 +3,10 @@ import fs from 'fs/promises';
 import path from 'path';
 import { Command } from 'commander';
 import pc from 'picocolors';
+import prompts from 'prompts';
 import { runPromptFunnel } from './prompts.js';
 import { executeScaffoldingPipeline } from './generator.js';
-import { scanWorkspace, fileExists } from './utils/workspace.js';
+import { scanWorkspace, fileExists, toPosixPath } from './utils/workspace.js';
 import { parseEntityName, hydrateStub } from './utils/stub.js';
 
 const program = new Command();
@@ -13,7 +14,27 @@ const program = new Command();
 program
   .name('create-node-blueprint')
   .description('Enterprise Node.js & TypeScript API scaffolding and daily code generation engine')
-  .version('1.0.0');
+  .version('1.1.0');
+
+// Helper to interactively resolve entity names if the user drops command arguments
+const resolveEntityName = async (providedName?: string, entityType: string = 'Resource'): Promise<string> => {
+  if (providedName && providedName.trim()) return providedName.trim();
+  
+  console.log('');
+  const response = await prompts({
+    type: 'text',
+    name: 'entityName',
+    message: `Enter the target name for your ${entityType} (e.g., User, ProductOrder):`,
+    validate: (val) => (val.trim().length > 0 ? true : 'Entity name cannot be blank.'),
+  });
+
+  if (!response.entityName) {
+    console.error(pc.red('❌ Aborted: Entity name resolution required to proceed.'));
+    process.exit(1);
+  }
+
+  return response.entityName.trim();
+};
 
 // ==========================================
 // ROUTE 1: PRIMARY SCAFFOLDING FUNNEL
@@ -40,11 +61,12 @@ program
 // ==========================================
 
 program
-  .command('make:controller <name>')
+  .command('make:controller [name]')
   .description('Scaffold a new domain controller pre-wired with standard HTTP transport logic')
-  .action(async (name: string) => {
+  .action(async (name?: string) => {
+    const resolvedName = await resolveEntityName(name, 'Controller');
     const context = await scanWorkspace();
-    const names = parseEntityName(name);
+    const names = parseEntityName(resolvedName);
     
     const targetDir = path.join(context.srcDir, 'controllers');
     const destPath = path.join(targetDir, `${names.kebabName}.controller.${context.ext}`);
@@ -69,11 +91,12 @@ program
   });
 
 program
-  .command('make:service <name>')
+  .command('make:service [name]')
   .description('Scaffold a decoupled business logic execution engine')
-  .action(async (name: string) => {
+  .action(async (name?: string) => {
+    const resolvedName = await resolveEntityName(name, 'Service');
     const context = await scanWorkspace();
-    const names = parseEntityName(name);
+    const names = parseEntityName(resolvedName);
     
     const targetDir = path.join(context.srcDir, 'services');
     const destPath = path.join(targetDir, `${names.kebabName}.service.${context.ext}`);
@@ -98,11 +121,12 @@ program
   });
 
 program
-  .command('make:route <name>')
+  .command('make:route [name]')
   .description('Scaffold an API routing profile mapped cleanly to domain targets')
-  .action(async (name: string) => {
+  .action(async (name?: string) => {
+    const resolvedName = await resolveEntityName(name, 'Route');
     const context = await scanWorkspace();
-    const names = parseEntityName(name);
+    const names = parseEntityName(resolvedName);
     
     const targetDir = path.join(context.srcDir, 'routes');
     const destPath = path.join(targetDir, `${names.kebabName}.routes.${context.ext}`);
@@ -126,19 +150,16 @@ program
     }
   });
 
-// ==========================================
-// COMMIT 4: THE VERTICAL SLICE (RESOURCE)
-// ==========================================
 program
-  .command('make:resource <name>')
+  .command('make:resource [name]')
   .description('Generate a complete vertical domain slice (Controller, Service, Route concurrently)')
-  .action(async (name: string) => {
+  .action(async (name?: string) => {
+    const resolvedName = await resolveEntityName(name, 'Resource Slice');
     const context = await scanWorkspace();
-    const names = parseEntityName(name);
+    const names = parseEntityName(resolvedName);
 
     console.log(pc.cyan(`🚀 Scaffolding Full Resource Slice for [${pc.bold(names.pascalName)}] targeting ${context.ext.toUpperCase()} output...`));
 
-    // Map out explicit destination paths
     const controllerDir = path.join(context.srcDir, 'controllers');
     const serviceDir = path.join(context.srcDir, 'services');
     const routeDir = path.join(context.srcDir, 'routes');
@@ -147,7 +168,6 @@ program
     const servicePath = path.join(serviceDir, `${names.kebabName}.service.${context.ext}`);
     const routePath = path.join(routeDir, `${names.kebabName}.routes.${context.ext}`);
 
-    // Perform concurrent evaluation to intercept existing structures instantly
     const fileVerifications = await Promise.all([
       fileExists(controllerPath),
       fileExists(servicePath),
@@ -156,42 +176,41 @@ program
 
     if (fileVerifications.includes(true)) {
       console.error(pc.red(`❌ Aborted: One or more resource assets already exist for [${names.kebabName}].`));
-      console.log(pc.yellow(`👉 Please verify your target controllers, services, or routes directories to avoid state fragmentation.`));
       process.exit(1);
     }
 
     try {
-      // Establish missing target layout frameworks concurrently
       await Promise.all([
         fs.mkdir(controllerDir, { recursive: true }),
         fs.mkdir(serviceDir, { recursive: true }),
         fs.mkdir(routeDir, { recursive: true }),
       ]);
 
-      // Hydrate core templates asynchronously in parallel
       const [controllerContent, serviceContent, routeContent] = await Promise.all([
         hydrateStub('controller.resource', names, context.isTS),
         hydrateStub('service', names, context.isTS),
         hydrateStub('route.resource', names, context.isTS),
       ]);
 
-      // Write compiled stream outputs to disk storage
       await Promise.all([
         fs.writeFile(controllerPath, controllerContent.trim() + '\n', 'utf-8'),
         fs.writeFile(servicePath, serviceContent.trim() + '\n', 'utf-8'),
         fs.writeFile(routePath, routeContent.trim() + '\n', 'utf-8'),
       ]);
 
-      // Output tailored operational log summaries
+      // Safely apply POSIX slash translations for cross-platform log outputs
+      const relController = toPosixPath(path.relative(context.rootDir, controllerPath));
+      const relService = toPosixPath(path.relative(context.rootDir, servicePath));
+      const relRoute = toPosixPath(path.relative(context.rootDir, routePath));
+
       console.log('');
       console.log(pc.green(`✔ Vertical domain resource slice generated successfully!`));
       console.log(pc.gray('-------------------------------------------------------------------'));
-      console.log(`📁 ${pc.bold('Controller:')} ${pc.cyan(path.relative(context.rootDir, controllerPath))}`);
-      console.log(`📁 ${pc.bold('Service:')}    ${pc.cyan(path.relative(context.rootDir, servicePath))}`);
-      console.log(`📁 ${pc.bold('Route:')}      ${pc.cyan(path.relative(context.rootDir, routePath))}`);
+      console.log(`📁 ${pc.bold('Controller:')} ${pc.cyan(relController)}`);
+      console.log(`📁 ${pc.bold('Service:')}    ${pc.cyan(relService)}`);
+      console.log(`📁 ${pc.bold('Route:')}      ${pc.cyan(relRoute)}`);
       console.log(pc.gray('-------------------------------------------------------------------'));
       
-      // Print actionable setup integration mapping instructions
       console.log(pc.bold('👉 Next Step (Mount your route):'));
       console.log(`   Open ${pc.cyan(`src/app.${context.ext}`)} and mount your new domain profile:`);
       console.log('');

@@ -55,3 +55,11 @@ export const fileExists = async (filePath: string): Promise<boolean> => {
     return false;
   }
 };
+
+/**
+ * Safely converts host platform path separators into compliant POSIX forward slashes
+ * guaranteeing generated ECMAScript Module imports compile flawlessly on Windows.
+ */
+export const toPosixPath = (filePath: string): string => {
+  return filePath.split(path.sep).join('/');
+};
