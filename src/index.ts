@@ -8,6 +8,7 @@ import { runPromptFunnel } from './prompts.js';
 import { executeScaffoldingPipeline } from './generator.js';
 import { scanWorkspace, fileExists, toPosixPath } from './utils/workspace.js';
 import { parseEntityName, hydrateStub } from './utils/stub.js';
+import { injectRouteIntoApp } from './utils/injector.js';
 
 const program = new Command();
 
@@ -211,12 +212,25 @@ program
       console.log(`📁 ${pc.bold('Route:')}      ${pc.cyan(relRoute)}`);
       console.log(pc.gray('-------------------------------------------------------------------'));
       
-      console.log(pc.bold('👉 Next Step (Mount your route):'));
-      console.log(`   Open ${pc.cyan(`src/app.${context.ext}`)} and mount your new domain profile:`);
-      console.log('');
-      console.log(pc.yellow(`   import ${names.camelName}Routes from './routes/${names.kebabName}.routes.js';`));
-      console.log(pc.yellow(`   app.use('/api/v1/${names.kebabName}s', ${names.camelName}Routes);`));
-      console.log('');
+      // ==========================================
+      // AUTOMATED ROUTE INJECTION EXECUTION
+      // ==========================================
+      console.log(pc.cyan(`🔄 Attempting automated route injection into src/app.${context.ext}...`));
+      const routeMounted = await injectRouteIntoApp(context, names);
+
+      if (routeMounted) {
+        console.log(pc.green(`✔ Route dynamically imported and mounted inside application core!`));
+        console.log(pc.gray(`  Mounted: app.use('/api/v1/${names.kebabName}s', ${names.camelName}Routes);`));
+        console.log('');
+      } else {
+        console.log(pc.yellow(`○ Auto-mount bypassed (Custom app.ts layout or route already mapped).`));
+        console.log(pc.bold('👉 Next Step (Mount manually):'));
+        console.log(`   Open ${pc.cyan(`src/app.${context.ext}`)} and mount your new domain profile:`);
+        console.log('');
+        console.log(pc.yellow(`   import ${names.camelName}Routes from './routes/${names.kebabName}.routes.js';`));
+        console.log(pc.yellow(`   app.use('/api/v1/${names.kebabName}s', ${names.camelName}Routes);`));
+        console.log('');
+      }
     } catch (error: any) {
       console.error(pc.red(`🚨 Execution failed during vertical slice compilation: ${error.message}`));
       process.exit(1);
